@@ -23,7 +23,7 @@ pub struct Player {
 
 /// A *hand* containing `n` *fingers*.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Hand(u8);
+pub struct Hand(pub u8);
 
 impl GameState {
     /// Initializes a game state for `n` players.
@@ -116,6 +116,14 @@ impl GameState {
             1 => Some(self.i),
             _ => None,
         }
+    }
+
+    // The 'abbreviation' representation of the game state.
+    pub fn abbreviation(&self) -> Vec<[u8; 2]> {
+        self.players
+            .iter()
+            .map(|player| [player.hands[0].0, player.hands[1].0])
+            .collect()
     }
 }
 
