@@ -1,22 +1,20 @@
 // A word is *italicized* if it is "business logic" for chopsticks.
 
-use std::ops::AddAssign;
-
-// NEED TO RETHINK GAME STATE TO BE LIKE ABBREVIATION. Need to track original index.
+use std::{collections::VecDeque, ops::AddAssign};
 
 /// Game state for [rollover chopsticks](https://en.wikipedia.org/wiki/Chopsticks_(hand_game)#Rules).
 #[derive(Debug, PartialEq, Eq)]
 pub struct GameState {
-    /// The index of the *player* whose *turn* it is
-    pub i: usize,
-
     /// Game position describing the hands for each *players*.
-    pub players: Vec<Player>,
+    pub players: VecDeque<Player>,
 }
 
 /// The position for an individual *player*.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Player {
+    /// Uniquely identifies player intra-game.
+    pub id: usize,
+
     /// A *player's* *hands*
     pub hands: [Hand; 2],
 }
@@ -36,9 +34,9 @@ impl GameState {
             Err(ValueError)
         } else {
             Ok(GameState {
-                i: 0,
                 players: (0..n)
-                    .map(|_| Player {
+                    .map(|i| Player {
+                        id: i,
                         hands: [Hand(1); 2],
                     })
                     .collect(),
@@ -46,22 +44,26 @@ impl GameState {
         }
     }
 
-    /// The *player* at `i` uses *hand* `a` to attack *player* `j` at *hand* `b`.
+    /// The current *player* uses *hand* `a` to attack *player* in `i` turns at *hand* `b`.
     ///
     /// # Errors
     ///
-    /// Returns an error if `i` is `j` or any of `j`, `a`, or `b` are out of bounds.
-    /// Returns an error when the attacking or defending *hand* is dead.
-    pub fn attack(&mut self, j: usize, a: usize, b: usize) -> Result<(), ValueError> {
-        if self.i == j || j >= self.players.len() || a > 1 || b > 1 {
+    /// Returns an error if `i` is `0` or `i`, `a`, or `b` are out of bounds.
+    /// Returns an error when the attacking or defending *hands* are dead.
+    pub fn attack(&mut self, i: usize, a: usize, b: usize) -> Result<(), ValueError> {
+        if i == 0 || i >= self.players.len() || a > 1 || b > 1 {
             return Err(ValueError);
         }
-        let attacker = self.players[self.i].hands[a];
-        let defender = self.players[j].hands[b];
+        let attacker = self.players[0].hands[a];
+        let defender = self.players[i].hands[b];
         if attacker.is_dead() || defender.is_dead() {
             Err(ValueError)
         } else {
-            self.players[j].hands[b] += attacker;
+            self.players[i].hands[b] += attacker;
+            self.players[i].hands.sort_unstable_by_key(|hand| hand.0);
+            if self.players[i].is_eliminated() {
+                self.players.remove(i);
+            }
             self.iterate_turn();
             Ok(())
         }
@@ -75,7 +77,7 @@ impl GameState {
     /// Returns an error when there is an incorrect total number of fingers.
     /// Returns an error if left and right remain unchanged or are swapped.
     pub fn split(&mut self, left: u8, right: u8) -> Result<(), ValueError> {
-        if self.players[self.i].try_swap([left, right]) {
+        if self.players[0].try_swap([left, right]) {
             self.iterate_turn();
             Ok(())
         } else {
@@ -83,58 +85,42 @@ impl GameState {
         }
     }
 
-    /// Proceeds `i` to the next non-eliminated *players* turn
+    /// Rotates `self.players` to indicate the next *player's* turn
     ///
     /// # Panics
     ///
     /// An invalid game state where no non-eliminated players remain panics.
     fn iterate_turn(&mut self) {
-        self.i = self
-            .players
-            .iter()
-            .enumerate()
-            .cycle()
-            .skip(self.i + 1)
-            .find(|(_, player)| !player.is_eliminated())
-            .expect("no non-eliminated players remain")
-            .0;
+        let player = self.players.pop_front().unwrap();
+        self.players.push_back(player);
     }
 
-    /// If there is exactly 1 non-eliminated player their index is returned.
-    ///
-    /// # Panics
-    ///
-    /// An invalid game state where no non-eliminated players remain panics.
-    pub fn winner_position(&self) -> Option<usize> {
-        match self
-            .players
-            .iter()
-            .filter(|player| !player.is_eliminated())
-            .count()
-        {
-            0 => panic!("no non-eliminated players remain"),
-            1 => Some(self.i),
-            _ => None,
-        }
-    }
-
-    // The 'abbreviation' representation of the game state.
-    pub fn abbreviation(&self) -> Vec<[u8; 2]> {
+    /// The 'abbreviation' representation of the game state.
+    pub fn abbreviation(&self) -> String {
         self.players
             .iter()
-            .map(|player| [player.hands[0].0, player.hands[1].0])
+            .flat_map(|player| player.hands.iter().map(|hand| hand.0.to_string()))
             .collect()
+    }
+
+    pub fn winner_id(&self) -> Option<usize> {
+        if self.players.len() == 1 {
+            Some(self.players[0].id)
+        } else {
+            None
+        }
     }
 }
 
 impl Player {
     /// A *player* is elemiminated if both of their *hands* are dead.
     fn is_eliminated(&self) -> bool {
-        self.hands.iter().all(|hand| hand.is_dead())
+        self.hands[1].is_dead()
     }
 
     /// Attempts to update the *hands* and returns `true` if it was successful
     fn try_swap(&mut self, b: [u8; 2]) -> bool {
+        // TODO: preferably, we'd only receive the value of the left hand
         if !b.iter().all(|hand| (1..5).contains(hand)) {
             return false;
         }
@@ -142,6 +128,7 @@ impl Player {
         if a.iter().sum::<u8>() == b.iter().sum() && !a.contains(&b[0]) {
             self.hands[0].0 = b[0];
             self.hands[1].0 = b[1];
+            self.hands.sort_unstable_by_key(|hand| hand.0);
             true
         } else {
             false
@@ -181,15 +168,16 @@ mod tests {
         assert_eq!(
             GameState::new(2).unwrap(),
             GameState {
-                players: vec![
+                players: VecDeque::from(vec![
                     Player {
+                        id: 0,
                         hands: [Hand(1); 2],
                     },
                     Player {
+                        id: 1,
                         hands: [Hand(1); 2],
                     },
-                ],
-                i: 0,
+                ]),
             }
         );
     }
@@ -221,8 +209,8 @@ mod tests {
     fn attack_with_one() {
         let mut game_state = GameState::new(2).unwrap();
         assert!(game_state.attack(1, 0, 0).is_ok());
-        assert_eq!(game_state.players[1].hands[0].0, 2);
-        assert_eq!(game_state.i, 1);
+        assert_eq!(game_state.players[0].id, 1);
+        assert_eq!(game_state.players[0].hands[1].0, 2);
     }
 
     #[test]
@@ -230,8 +218,8 @@ mod tests {
         let mut game_state = GameState::new(2).unwrap();
         game_state.players[0].hands[1].0 = 4;
         assert!(game_state.attack(1, 1, 1).is_ok());
-        assert_eq!(game_state.players[1].hands[1].0, 0);
-        assert_eq!(game_state.i, 1);
+        assert_eq!(game_state.players[0].id, 1);
+        assert_eq!(game_state.players[0].hands[0].0, 0);
     }
     #[test]
     fn split_with_zero() {
@@ -265,7 +253,6 @@ mod tests {
     #[test]
     fn valid_splits() {
         let mut game_state = GameState::new(2).unwrap();
-        let mut turn = 0;
         for (a, b, c, d) in [
             // Divisions
             (0, 2, 1, 1),
@@ -280,31 +267,29 @@ mod tests {
             (2, 4, 3, 3),
             (3, 3, 2, 4),
         ] {
-            let i = turn & 1;
-            game_state.players[i].hands[0].0 = a;
-            game_state.players[i].hands[1].0 = b;
-            assert_eq!(i, game_state.i);
+            game_state.players[0].hands[0].0 = a;
+            game_state.players[0].hands[1].0 = b;
             assert!(game_state.split(c, d).is_ok());
-            assert_eq!(game_state.players[i].hands[0].0, c);
-            assert_eq!(game_state.players[i].hands[1].0, d);
-            turn += 1;
+            assert_eq!(game_state.players[1].hands[0].0, c);
+            assert_eq!(game_state.players[1].hands[1].0, d);
         }
     }
 
     #[test]
-    fn none_winner_position() {
+    fn no_winner_id() {
         let game_state = GameState::new(2).unwrap();
-        assert!(game_state.winner_position().is_none())
+        assert_eq!(game_state.winner_id(), None);
     }
 
     #[test]
-    fn winner_position() {
+    fn short_game() {
         let mut game_state = GameState::new(2).unwrap(); // 1111
-        assert!(game_state.attack(1, 0, 1).is_ok()); // 1112
-        assert!(game_state.attack(0, 1, 1).is_ok()); // 1312
-        assert!(game_state.attack(1, 1, 1).is_ok()); // 1310
-        assert!(game_state.attack(0, 0, 1).is_ok()); // 1410
-        assert!(game_state.attack(1, 1, 0).is_ok()); // 1400
-        assert_eq!(game_state.winner_position(), Some(0));
+        assert!(game_state.attack(1, 0, 1).is_ok()); // 1211
+        assert!(game_state.attack(1, 1, 1).is_ok()); // 1312
+        assert!(game_state.attack(1, 1, 1).is_ok()); // 0113
+        assert!(game_state.attack(1, 1, 1).is_ok()); // 1401
+        assert!(game_state.attack(1, 1, 1).is_ok()); // 0014
+        dbg!(&game_state);
+        assert_eq!(game_state.winner_id(), Some(0));
     }
 }

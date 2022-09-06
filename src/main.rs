@@ -20,15 +20,12 @@ enum Move {
 fn main() {
     let mut game_state = GameState::new(2).expect("invalid game state");
     loop {
-        println!("{:?}", game_state.abbreviation());
-        if move_prompt(game_state.i)
+        println!("{}", game_state.abbreviation());
+        if move_prompt(game_state.players[0].id)
             .and_then(|player_move| match player_move {
-                Move::Attack => attack_prompt(game_state.i).and_then(|(a, b)| {
-                    game_state
-                        .attack(1 - game_state.i, a, b)
-                        .map_err(|_| PromptError)
-                }),
-                Move::Split => split_prompt(game_state.i).and_then(|(left, right)| {
+                Move::Attack => attack_prompt(game_state.players[0].id)
+                    .and_then(|(a, b)| game_state.attack(1, a, b).map_err(|_| PromptError)),
+                Move::Split => split_prompt(game_state.players[0].id).and_then(|(left, right)| {
                     game_state.split(left, right).map_err(|_| PromptError)
                 }),
             })
@@ -36,8 +33,8 @@ fn main() {
         {
             println!("Something wasn't right. Try again.")
         }
-        if let Some(i) = game_state.winner_position() {
-            println!("Player {i} won!");
+        if let Some(id) = game_state.winner_id() {
+            println!("Player {id} won!");
             break;
         }
     }
