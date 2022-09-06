@@ -103,6 +103,7 @@ impl GameState {
             .collect()
     }
 
+    /// The `id` of the *player* if there is exactly 1 *player*
     pub fn winner_id(&self) -> Option<usize> {
         if self.players.len() == 1 {
             Some(self.players[0].id)
