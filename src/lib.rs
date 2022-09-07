@@ -11,7 +11,7 @@ pub struct Chopsticks {
 }
 
 /// Game state for [chopsticks](https://en.wikipedia.org/wiki/Chopsticks_(hand_game)#Rules).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ChopsticksState {
     players: VecDeque<Player>,
     n_hands: usize,
@@ -19,7 +19,7 @@ pub struct ChopsticksState {
 }
 
 /// The position for an individual *player*.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Eq, PartialEq)]
 struct Player {
     /// Uniquely identifies player within a `ChopsticksState`.
     id: usize,
@@ -136,16 +136,15 @@ impl ChopsticksState {
     ///
     /// # Errors
     ///
+    /// Returns an error when `new_hands` is not sorted in non-descending order.
     /// Returns an error when `new_hands` contains no changes.
     /// Returns an error when the total number of *fingers* has changed.
     /// Returns an error when any *hand* contains an invalid number of *fingers*.
-    pub fn split(&mut self, mut new_hands: Vec<u32>) -> Result<(), ValueError> {
-        new_hands.sort_unstable();
+    pub fn split(&mut self, new_hands: Vec<u32>) -> Result<(), ValueError> {
         if self.players[0].hands == new_hands
+            || new_hands.iter().zip(&new_hands[1..]).any(|(a, b)| a > b) // `!new_hands.is_sorted()`
             || new_hands.iter().sum::<u32>() != self.players[0].hands.iter().sum()
-            || new_hands
-                .iter()
-                .any(|hand| !(1..self.fingers).contains(hand))
+            || new_hands.iter().any(|hand| !(1..self.fingers).contains(hand))
         {
             Err(ValueError)
         } else {
@@ -193,7 +192,11 @@ impl ChopsticksState {
 }
 
 impl Player {
-    /// A *player* is eliminated if both of their *hands* are dead.
+    /// A *player* is eliminated if all of their *hands* are dead.
+    ///
+    /// # Panics
+    ///
+    /// An invalid `Player` state where the *player* has no hands panics.
     fn is_eliminated(&self) -> bool {
         *self.hands.last().expect("no hands") == 0
     }
@@ -335,7 +338,6 @@ mod tests {
         assert!(game_state.attack(1, 1, 1).is_ok()); // 0113
         assert!(game_state.attack(1, 1, 1).is_ok()); // 1401
         assert!(game_state.attack(1, 1, 1).is_ok()); // 0014
-        dbg!(&game_state);
         assert_eq!(game_state.winner_id(), Some(0));
     }
 }
