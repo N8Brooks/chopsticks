@@ -1,4 +1,4 @@
-use chopsticks::GameState;
+use chopsticks::Chopsticks;
 use std::io;
 use std::str::FromStr;
 
@@ -18,22 +18,23 @@ enum Move {
 }
 
 fn main() {
-    let mut game_state = GameState::new(2).expect("invalid game state");
+    let mut state = Chopsticks::default().build();
     loop {
-        println!("{}", game_state.abbreviation());
-        if move_prompt(game_state.players[0].id)
+        println!("{}", state.abbreviation());
+        let turn = state.get_turn();
+        if move_prompt(turn)
             .and_then(|player_move| match player_move {
-                Move::Attack => attack_prompt(game_state.players[0].id)
-                    .and_then(|(a, b)| game_state.attack(1, a, b).map_err(|_| PromptError)),
-                Move::Split => split_prompt(game_state.players[0].id).and_then(|(left, right)| {
-                    game_state.split(left, right).map_err(|_| PromptError)
+                Move::Attack => attack_prompt(turn)
+                    .and_then(|(a, b)| state.attack(1, a, b).map_err(|_| PromptError)),
+                Move::Split => split_prompt(turn).and_then(|(left, right)| {
+                    state.split(vec![left, right]).map_err(|_| PromptError)
                 }),
             })
             .is_err()
         {
             println!("Something wasn't right. Try again.")
         }
-        if let Some(id) = game_state.winner_id() {
+        if let Some(id) = state.winner_id() {
             println!("Player {id} won!");
             break;
         }
@@ -75,7 +76,7 @@ fn attack_prompt(i: usize) -> Result<(usize, usize), PromptError> {
 }
 
 /// Prompts *player* for defending input
-fn split_prompt(i: usize) -> Result<(u8, u8), PromptError> {
+fn split_prompt(i: usize) -> Result<(u32, u32), PromptError> {
     println!("Player {i}, how many fingers will you split for your left hand?");
     let left = read_parsable()?;
     println!("Player {i}, how many fingers will you split for your right hand?");
