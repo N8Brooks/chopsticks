@@ -1,6 +1,7 @@
+use chopsticks::chopsticks::Chopsticks;
+use chopsticks::chopsticks_state::Action;
 use std::io;
 use std::str::FromStr;
-use chopsticks::chopsticks::Chopsticks;
 
 // TODO: This should probably be refactored
 //  - The error handling seems clunky. I'm not familiar enough to fix it.
@@ -24,10 +25,17 @@ fn main() {
         let turn = state.get_turn();
         if move_prompt(turn)
             .and_then(|player_move| match player_move {
-                Move::Attack => attack_prompt(turn)
-                    .and_then(|(a, b)| state.attack(1, a, b).map_err(|_| PromptError)),
+                Move::Attack => attack_prompt(turn).and_then(|(a, b)| {
+                    state
+                        .apply_action(Action::Attack { i: 1, a, b })
+                        .map_err(|_| PromptError)
+                }),
                 Move::Split => split_prompt(turn).and_then(|(left, right)| {
-                    state.split(vec![left, right]).map_err(|_| PromptError)
+                    state
+                        .apply_action(Action::Split {
+                            new_hands: vec![left, right],
+                        })
+                        .map_err(|_| PromptError)
                 }),
             })
             .is_err()

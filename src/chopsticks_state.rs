@@ -32,6 +32,7 @@ pub enum SplitError {
 }
 
 pub enum ActionError {
+    GameIsOver,
     AttackError(AttackError),
     SplitError(SplitError),
 }
@@ -50,7 +51,7 @@ impl ChopsticksState {
     /// Returns `PlayerIndexOutOfBounds` if `i` is `0` or `i`
     /// Returns `HandIndexOutOfBounds` if `a`, or `b` are out of bounds.
     /// Returns `HandIsNotAlive` if either the attacking or defending *hand* is dead.
-    pub fn attack(&mut self, i: usize, a: usize, b: usize) -> Result<(), AttackError> {
+    fn attack(&mut self, i: usize, a: usize, b: usize) -> Result<(), AttackError> {
         if i == 0 || i >= self.players.len() {
             Err(AttackError::PlayerIndexOutOfBounds)
         } else if a >= self.n_hands || b >= self.n_hands {
@@ -80,7 +81,7 @@ impl ChopsticksState {
     /// Returns `MoveWithoutChange` if the values of `hands` doesn't change.
     /// Returns `InvalidTotalRollover` when the total number of *rollover* has changed.
     /// Returns `InvalidFingerValue` when any *hand* contains an invalid number of *rollover*.
-    pub fn split(&mut self, mut new_hands: Vec<u32>) -> Result<(), SplitError> {
+    fn split(&mut self, mut new_hands: Vec<u32>) -> Result<(), SplitError> {
         new_hands.sort_unstable();
         if self.players[0].hands == new_hands {
             Err(SplitError::MoveWithoutChange)
@@ -100,6 +101,7 @@ impl ChopsticksState {
 
     pub fn apply_action(&mut self, action: Action) -> Result<(), ActionError> {
         match action {
+            _ if self.players.len() <= 1 => Err(ActionError::GameIsOver),
             Action::Attack { i, a, b } => self.attack(i, a, b).map_err(ActionError::AttackError),
             Action::Split { new_hands } => self.split(new_hands).map_err(ActionError::SplitError),
         }
