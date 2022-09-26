@@ -113,6 +113,7 @@ impl<T: PrimInt> Chopsticks<T> {
         }
     }
 
+    /// Gives a unique id for each `Action` among `Chopsticks`
     pub fn serialize_action(&self, action: Action) -> T {
         match action {
             Action::Attack { i, a, b } => {
@@ -126,12 +127,14 @@ impl<T: PrimInt> Chopsticks<T> {
         }
     }
 
+    /// Gives a unique id for each `ChopsticksState` among `Chopsticks`
     pub fn serialize_state(&self, state: &ChopsticksState) -> T {
         state.players.iter().fold(T::zero(), |serial, player| {
             serial * self.hands_offset + self.serialize_hands(&player.hands)
         }) * self.split_offset
     }
 
+    /// Gives a unique id for each `hand` among `Chopsticks`
     fn serialize_hands(&self, hands: &[u32]) -> T {
         let rollover = T::from(self.rollover).expect("convertable rollover");
         hands.iter().fold(T::zero(), |serial, &fingers| {

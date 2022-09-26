@@ -1,7 +1,8 @@
+use itertools::Itertools;
 use std::collections::VecDeque;
 
 /// Game state for [chopsticks](https://en.wikipedia.org/wiki/Chopsticks_(hand_game)#Rules).
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct ChopsticksState {
     pub players: VecDeque<Player>,
     pub n_hands: usize,
@@ -9,7 +10,7 @@ pub struct ChopsticksState {
 }
 
 /// The position for an individual *player*.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Player {
     /// Uniquely identifies player within a `ChopsticksState`.
     pub id: usize,
@@ -74,6 +75,21 @@ impl ChopsticksState {
         }
     }
 
+    /// All possible attack actions from the current `GameState`
+    pub fn attack_actions(&self) -> impl Iterator<Item = Action> + '_ {
+        self.players
+            .iter()
+            .enumerate()
+            .skip(1)
+            .flat_map(move |(i, defender)| {
+                let a_indexes = self.players[0].alive_fingers_indexes();
+                let b_indexes = defender.alive_fingers_indexes();
+                a_indexes
+                    .cartesian_product(b_indexes)
+                    .map(move |(a, b)| Action::Attack { i, a, b })
+            })
+    }
+
     /// The *player* transfers or divides *rollover* among their hands.
     ///
     /// # Errors
@@ -99,6 +115,55 @@ impl ChopsticksState {
         }
     }
 
+    /// All possible split actions from the current `GameState`
+    pub fn split_actions(&self) -> Vec<Action> {
+        let mut splits = Vec::new();
+        let fingers = self.players[0].hands.iter().sum::<u32>();
+        if let Some(mut fingers) = fingers.checked_sub(self.n_hands as u32) {
+            let mut hands: Vec<_> = (0..self.n_hands)
+                .rev()
+                .map(|_| {
+                    let allocated_fingers = fingers.min(self.rollover - 2);
+                    fingers -= allocated_fingers;
+                    allocated_fingers + 1
+                })
+                .rev()
+                .collect();
+            'allocation: loop {
+                let k = hands.len().checked_sub(1).expect("hands not empty"); // last valid index
+                splits.push(Action::Split {
+                    new_hands: hands.clone(),
+                });
+                for i in (0..hands.len() - 2).rev() {
+                    if hands[i] == hands[k] {
+                        continue;
+                    }
+                    let j = i + 1;
+                    while hands[j] > 1 && hands[j] > hands[i] {
+                        hands[j] -= 1;
+                        hands[i] += 1;
+                        splits.push(Action::Split {
+                            new_hands: hands.clone(),
+                        });
+                    }
+                    if i == 0 {
+                        break 'allocation;
+                    }
+                    hands[i - 1] += 1;
+                    hands[k] -= 1;
+                    for j in i..k {
+                        hands[k] += hands[j] - 1;
+                        hands[j] = 1;
+                    }
+                    continue 'allocation;
+                }
+                break 'allocation;
+            }
+        }
+        splits
+    }
+
+    /// Transition state as a player's turn
     pub fn apply_action(&mut self, action: Action) -> Result<(), ActionError> {
         match action {
             _ if self.players.len() <= 1 => Err(ActionError::GameIsOver),
@@ -147,6 +212,14 @@ impl Player {
     /// An invalid `Player` state where the *player* has no hands panics.
     fn is_eliminated(&self) -> bool {
         *self.hands.last().expect("no hands") == 0
+    }
+
+    fn alive_fingers_indexes(&self) -> impl Iterator<Item = usize> + std::clone::Clone + '_ {
+        self.hands
+            .iter()
+            .enumerate()
+            .skip_while(|(_, &fingers)| fingers == 0)
+            .map(|(i, _)| i)
     }
 }
 
