@@ -1,6 +1,6 @@
-use chopsticks::Chopsticks;
 use std::io;
 use std::str::FromStr;
+use chopsticks::chopsticks::Chopsticks;
 
 // TODO: This should probably be refactored
 //  - The error handling seems clunky. I'm not familiar enough to fix it.
@@ -18,7 +18,7 @@ enum Move {
 }
 
 fn main() {
-    let mut state = Chopsticks::default().build();
+    let mut state = Chopsticks::<u32>::default().build();
     loop {
         println!("{}", state.abbreviation());
         let turn = state.get_turn();
