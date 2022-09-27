@@ -23,7 +23,6 @@ fn main() {
     let mut state = builder.build();
     loop {
         println!("{}", state.abbreviation());
-        dbg!(&state.actions().map(|x| builder.serialize_action(x)).collect::<Vec<_>>());
         let turn = state.get_turn();
         if move_prompt(turn)
             .and_then(|player_move| match player_move {

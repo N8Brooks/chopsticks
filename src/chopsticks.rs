@@ -7,7 +7,6 @@ pub struct ValueError;
 /// Configuration for generating a `ChopsticksState`.
 pub struct Chopsticks<T: PrimInt> {
     n_players: usize,
-    n_hands: usize,
     rollover: u32,
     initial_rollover: u32,
     split_offset: T,
@@ -41,7 +40,6 @@ impl<T: PrimInt> Chopsticks<T> {
         };
         Ok(Chopsticks {
             n_players,
-            n_hands,
             rollover,
             initial_rollover,
             split_offset,
@@ -55,16 +53,6 @@ impl<T: PrimInt> Chopsticks<T> {
             Err(ValueError)
         } else {
             self.n_players = n_players;
-            Ok(self)
-        }
-    }
-
-    /// Set the number of *hands* per *player*. Errors if `0`.
-    pub fn with_n_hands(&mut self, n_hands: usize) -> Result<&mut Chopsticks<T>, ValueError> {
-        if n_hands == 0 {
-            Err(ValueError)
-        } else {
-            self.n_hands = n_hands;
             Ok(self)
         }
     }
@@ -115,8 +103,8 @@ impl<T: PrimInt> Chopsticks<T> {
     pub fn serialize_action(&self, action: Action) -> T {
         match action {
             Action::Attack { i, a, b } => {
-                let n_hands = T::from(self.n_hands).expect("convertable n_hands");
                 let mut serial = T::from(i).expect("convertable i");
+                let n_hands = T::from(N_HANDS).expect("convertable N_HANDS");
                 serial = serial * n_hands + T::from(a).expect("convertable a");
                 serial = serial * n_hands + T::from(b).expect("convertable b");
                 serial
