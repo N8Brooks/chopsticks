@@ -4,5 +4,6 @@ pub trait PlayerController {
 }
 
 pub mod controllers {
+    pub mod command_prompt;
     pub mod random;
 }

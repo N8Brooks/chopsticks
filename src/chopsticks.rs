@@ -128,7 +128,7 @@ impl<T: PrimInt> Chopsticks<T> {
         })
     }
 
-    pub fn play_game(&self, mut players: Vec<impl PlayerController>) {
+    pub fn play_game(&self, mut players: Vec<&mut dyn PlayerController>) {
         if self.n_players != players.len() {
             panic!("n_players doesn't equal players.len()");
         }
@@ -147,7 +147,7 @@ impl<T: PrimInt> Chopsticks<T> {
                     if state.play_action(action).is_err() {
                         panic!("play action is err {:?}", &action);
                     }
-                },
+                }
                 Some(id) => {
                     println!("Player {id} won");
                     return;

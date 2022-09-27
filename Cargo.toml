@@ -9,7 +9,3 @@ edition = "2021"
 num-traits = "0.2"
 itertools = "0.4"
 rand = "0.8"
-
-[[bin]]
-name = "sandbox"
-path = "src/bin/sandbox.rs"
