@@ -23,17 +23,17 @@ fn main() {
     let mut state = builder.build();
     loop {
         println!("{}", state.abbreviation());
-        let turn = state.get_turn();
+        let turn = state.current_player_id();
         if move_prompt(turn)
             .and_then(|player_move| match player_move {
                 Move::Attack => attack_prompt(turn).and_then(|(a, b)| {
                     state
-                        .apply_action(Action::Attack { i: 1, a, b })
+                        .play_action(Action::Attack { i: 1, a, b })
                         .map_err(|_| PromptError)
                 }),
                 Move::Split => split_prompt(turn).and_then(|(left, right)| {
                     state
-                        .apply_action(Action::Split {
+                        .play_action(Action::Split {
                             new_hands: [left, right],
                         })
                         .map_err(|_| PromptError)

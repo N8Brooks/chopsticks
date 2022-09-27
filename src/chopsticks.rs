@@ -1,4 +1,4 @@
-use crate::chopsticks_state::*;
+use crate::{chopsticks_state::*, player_controller::PlayerController};
 use num_traits::int::PrimInt;
 
 #[derive(Debug)]
@@ -126,5 +126,33 @@ impl<T: PrimInt> Chopsticks<T> {
             let fingers = T::from(fingers).expect("convertable fingers");
             serial * rollover + fingers
         })
+    }
+
+    pub fn play_game(&self, mut players: Vec<impl PlayerController>) {
+        if self.n_players != players.len() {
+            panic!("n_players doesn't equal players.len()");
+        }
+        let mut state = self.build();
+        loop {
+            println!("{}", state.abbreviation());
+            if state.abbreviation() == "0102" {
+                // could this be made not specific to this game?
+                panic!("unending state detected");
+            }
+            match state.winner_id() {
+                None => {
+                    let id = state.current_player_id();
+                    let action = players[id].get_action(&state);
+                    println!("Player {id} is playing {:?}", &action);
+                    if state.play_action(action).is_err() {
+                        panic!("play action is err {:?}", &action);
+                    }
+                },
+                Some(id) => {
+                    println!("Player {id} won");
+                    return;
+                }
+            }
+        }
     }
 }

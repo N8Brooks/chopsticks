@@ -39,7 +39,7 @@ pub enum ActionError {
     SplitError(SplitError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Action {
     Attack { i: usize, a: usize, b: usize },
     Split { new_hands: [u32; N_HANDS] },
@@ -121,14 +121,16 @@ impl ChopsticksState {
     pub fn split_actions(&self) -> impl Iterator<Item = Action> + '_ {
         // TODO: extensible
         let total: u32 = self.players[0].hands.iter().sum();
-        (1..=total / 2)
+        let start = (total % self.rollover + 1).max(1);
+        let stop = total / 2;
+        (start..=stop)
             .map(move |a| -> [u32; N_HANDS] { [a, total - a] })
             .filter(|&new_hands| self.players[0].hands != new_hands)
             .map(|new_hands| Action::Split { new_hands })
     }
 
     /// Transition state as a player's turn
-    pub fn apply_action(&mut self, action: Action) -> Result<(), ActionError> {
+    pub fn play_action(&mut self, action: Action) -> Result<(), ActionError> {
         match action {
             _ if self.players.len() <= 1 => Err(ActionError::GameIsOver),
             Action::Attack { i, a, b } => self.attack(i, a, b).map_err(ActionError::AttackError),
@@ -136,7 +138,7 @@ impl ChopsticksState {
         }
     }
 
-    pub fn actions(&mut self) -> impl Iterator<Item = Action> + '_ {
+    pub fn actions(&self) -> impl Iterator<Item = Action> + '_ {
         self.attack_actions().chain(self.split_actions())
     }
 
@@ -158,7 +160,7 @@ impl ChopsticksState {
     /// # Panics
     ///
     /// An invalid game state where no non-eliminated players remain panics.
-    pub fn get_turn(&self) -> usize {
+    pub fn current_player_id(&self) -> usize {
         self.players[0].id
     }
 
