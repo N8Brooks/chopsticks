@@ -1,6 +1,6 @@
-use std::collections::VecDeque;
 use itertools::Itertools;
 pub use player::Player;
+use std::collections::VecDeque;
 
 mod player;
 
