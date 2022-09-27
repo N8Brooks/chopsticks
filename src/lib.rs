@@ -1,7 +1,8 @@
-pub mod controller;
-pub mod state;
 use crate::{controller::Controller, state::*};
 use num_traits::int::PrimInt;
+
+pub mod controller;
+pub mod state;
 
 #[derive(Debug)]
 pub struct ValueError;
