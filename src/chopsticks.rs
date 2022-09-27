@@ -16,7 +16,7 @@ pub struct Chopsticks<T: PrimInt> {
 impl<T: PrimInt> Default for Chopsticks<T> {
     /// Creates a `ChopsticksState` builder for additional configuration.
     fn default() -> Chopsticks<T> {
-        Chopsticks::new(2, 2, 5, 1).expect("default is ok")
+        Chopsticks::new(2, 5, 1).expect("default is ok")
     }
 }
 
@@ -24,19 +24,18 @@ impl<T: PrimInt> Default for Chopsticks<T> {
 impl<T: PrimInt> Chopsticks<T> {
     fn new(
         n_players: usize,
-        n_hands: usize,
         rollover: u32,
         initial_rollover: u32,
     ) -> Result<Chopsticks<T>, ValueError> {
         // TODO: validate size of T for serials
         let split_offset = {
             let n_players = T::from(n_players).map(Ok).unwrap_or(Err(ValueError))?;
-            let n_hands = T::from(n_hands).map(Ok).unwrap_or(Err(ValueError))?;
+            let n_hands = T::from(N_HANDS).map(Ok).unwrap_or(Err(ValueError))?;
             n_players * n_hands * n_hands
         };
         let hands_offset = {
             let rollover = T::from(rollover).map(Ok).unwrap_or(Err(ValueError))?;
-            rollover.pow(n_hands as u32)
+            rollover.pow(N_HANDS as u32)
         };
         Ok(Chopsticks {
             n_players,
