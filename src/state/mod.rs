@@ -196,7 +196,7 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chopsticks::Chopsticks;
+    use crate::Chopsticks;
 
     #[test]
     fn two_players() {

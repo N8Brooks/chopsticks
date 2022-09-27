@@ -1,6 +1,6 @@
 use crate::{
-    chopsticks_state::{Action, ChopsticksState},
-    player_controller::PlayerController,
+    controller::Controller,
+    state::{Action, ChopsticksState},
 };
 use std::{io, str::FromStr};
 
@@ -9,7 +9,7 @@ struct PromptError(&'static str);
 
 pub struct CommandPrompt;
 
-impl PlayerController for CommandPrompt {
+impl Controller for CommandPrompt {
     fn get_action(&mut self, gamestate: &ChopsticksState) -> Action {
         loop {
             match self.move_prompt(gamestate) {
@@ -27,6 +27,8 @@ impl PlayerController for CommandPrompt {
 impl CommandPrompt {
     /// Prompts *player* for the move on their id
     fn move_prompt(&self, gamestate: &ChopsticksState) -> Result<Action, PromptError> {
+        let id = gamestate.current_player_id();
+        println!("Player {id}, would you like to attack or split?");
         let mut move_buffer = String::new();
         io::stdin()
             .read_line(&mut move_buffer)

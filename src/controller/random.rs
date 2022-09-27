@@ -1,10 +1,10 @@
-use crate::chopsticks_state::{Action, ChopsticksState};
-use crate::player_controller::PlayerController;
+use crate::controller::Controller;
+use crate::state::{Action, ChopsticksState};
 use rand::seq::SliceRandom;
 
 pub struct Random;
 
-impl PlayerController for Random {
+impl Controller for Random {
     fn get_action(&mut self, gamestate: &ChopsticksState) -> Action {
         let mut actions: Vec<_> = gamestate.actions().collect();
         *actions

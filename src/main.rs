@@ -1,15 +1,10 @@
-use chopsticks::{
-    chopsticks::Chopsticks,
-    player_controller::{
-        controllers::{command_prompt::CommandPrompt, random::Random},
-        PlayerController,
-    },
-};
+use chopsticks::controller::*;
+use chopsticks::Chopsticks;
 
 fn main() {
     let game = Chopsticks::<u128>::default();
-    let player_1 = &mut Random {};
-    let player_2 = &mut CommandPrompt {};
-    let players: Vec<&mut dyn PlayerController> = vec![player_1, player_2];
+    let player_1 = &mut command_prompt::CommandPrompt {};
+    let player_2 = &mut random::Random {};
+    let players: Vec<&mut dyn Controller> = vec![player_1, player_2];
     game.play_game(players)
 }
