@@ -96,7 +96,6 @@ impl<T: PrimInt> Chopsticks<T> {
     pub fn build(&self) -> ChopsticksState {
         let Chopsticks {
             n_players,
-            n_hands,
             rollover,
             initial_rollover,
             ..
@@ -105,10 +104,9 @@ impl<T: PrimInt> Chopsticks<T> {
             players: (0..n_players)
                 .map(|id| Player {
                     id,
-                    hands: vec![initial_rollover; n_hands],
+                    hands: [initial_rollover; N_HANDS],
                 })
                 .collect(),
-            n_hands,
             rollover,
         }
     }

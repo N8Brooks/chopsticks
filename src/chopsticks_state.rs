@@ -1,11 +1,12 @@
 use itertools::Itertools;
 use std::collections::VecDeque;
 
+pub const N_HANDS: usize = 2;
+
 /// Game state for [chopsticks](https://en.wikipedia.org/wiki/Chopsticks_(hand_game)#Rules).
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct ChopsticksState {
     pub players: VecDeque<Player>,
-    pub n_hands: usize,
     pub rollover: u32,
 }
 
@@ -16,7 +17,7 @@ pub struct Player {
     pub id: usize,
 
     /// A *player's* *hands* sorted in ascending order.
-    pub hands: Vec<u32>,
+    pub hands: [u32; N_HANDS],
 }
 
 pub enum AttackError {
@@ -38,9 +39,10 @@ pub enum ActionError {
     SplitError(SplitError),
 }
 
+#[derive(Debug)]
 pub enum Action {
     Attack { i: usize, a: usize, b: usize },
-    Split { new_hands: Vec<u32> },
+    Split { new_hands: [u32; N_HANDS] },
 }
 
 /// Current state in a game of chopsticks.
@@ -55,7 +57,7 @@ impl ChopsticksState {
     fn attack(&mut self, i: usize, a: usize, b: usize) -> Result<(), AttackError> {
         if i == 0 || i >= self.players.len() {
             Err(AttackError::PlayerIndexOutOfBounds)
-        } else if a >= self.n_hands || b >= self.n_hands {
+        } else if a >= N_HANDS || b >= N_HANDS {
             Err(AttackError::HandIndexOutOfBounds)
         } else {
             let attacker = self.players[0].hands[a];
@@ -97,7 +99,7 @@ impl ChopsticksState {
     /// Returns `MoveWithoutChange` if the values of `hands` doesn't change.
     /// Returns `InvalidTotalRollover` when the total number of *rollover* has changed.
     /// Returns `InvalidFingerValue` when any *hand* contains an invalid number of *rollover*.
-    fn split(&mut self, mut new_hands: Vec<u32>) -> Result<(), SplitError> {
+    fn split(&mut self, mut new_hands: [u32; N_HANDS]) -> Result<(), SplitError> {
         new_hands.sort_unstable();
         if self.players[0].hands == new_hands {
             Err(SplitError::MoveWithoutChange)
@@ -116,51 +118,13 @@ impl ChopsticksState {
     }
 
     /// All possible split actions from the current `GameState`
-    pub fn split_actions(&self) -> Vec<Action> {
-        let mut splits = Vec::new();
-        let fingers = self.players[0].hands.iter().sum::<u32>();
-        if let Some(mut fingers) = fingers.checked_sub(self.n_hands as u32) {
-            let mut hands: Vec<_> = (0..self.n_hands)
-                .rev()
-                .map(|_| {
-                    let allocated_fingers = fingers.min(self.rollover - 2);
-                    fingers -= allocated_fingers;
-                    allocated_fingers + 1
-                })
-                .rev()
-                .collect();
-            'allocation: loop {
-                let k = hands.len().checked_sub(1).expect("hands not empty"); // last valid index
-                splits.push(Action::Split {
-                    new_hands: hands.clone(),
-                });
-                for i in (0..hands.len() - 2).rev() {
-                    if hands[i] == hands[k] {
-                        continue;
-                    }
-                    let j = i + 1;
-                    while hands[j] > 1 && hands[j] > hands[i] {
-                        hands[j] -= 1;
-                        hands[i] += 1;
-                        splits.push(Action::Split {
-                            new_hands: hands.clone(),
-                        });
-                    }
-                    if i == 0 {
-                        break 'allocation;
-                    }
-                    hands[i - 1] += 1;
-                    hands[k] -= 1;
-                    for j in i..k {
-                        hands[k] += hands[j] - 1;
-                        hands[j] = 1;
-                    }
-                    continue 'allocation;
-                }
-                break 'allocation;
-            }
-        }
-        splits
+    pub fn split_actions(&self) -> impl Iterator<Item = Action> + '_ {
+        // TODO: extensible
+        let total: u32 = self.players[0].hands.iter().sum();
+        (1..=total / 2)
+            .map(move |a| -> [u32; N_HANDS] { [a, total - a] })
+            .filter(|&new_hands| self.players[0].hands != new_hands)
+            .map(|new_hands| Action::Split { new_hands })
     }
 
     /// Transition state as a player's turn
@@ -170,6 +134,10 @@ impl ChopsticksState {
             Action::Attack { i, a, b } => self.attack(i, a, b).map_err(ActionError::AttackError),
             Action::Split { new_hands } => self.split(new_hands).map_err(ActionError::SplitError),
         }
+    }
+
+    pub fn actions(&mut self) -> impl Iterator<Item = Action> + '_ {
+        self.attack_actions().chain(self.split_actions())
     }
 
     /// Rotates `self.players` to indicate the next *player's* turn
@@ -236,14 +204,13 @@ mod tests {
                 players: VecDeque::from(vec![
                     Player {
                         id: 0,
-                        hands: vec![1; 2],
+                        hands: [1; 2],
                     },
                     Player {
                         id: 1,
-                        hands: vec![1; 2],
+                        hands: [1; 2],
                     },
                 ]),
-                n_hands: 2,
                 rollover: 5,
             }
         );
@@ -291,30 +258,30 @@ mod tests {
     #[test]
     fn split_with_zero() {
         let mut game_state = Chopsticks::<u32>::default().build();
-        assert!(game_state.split(vec![0, 2]).is_err());
-        assert!(game_state.split(vec![2, 0]).is_err());
+        assert!(game_state.split([0, 2]).is_err());
+        assert!(game_state.split([2, 0]).is_err());
     }
 
     #[test]
     fn split_with_five() {
         let mut game_state = Chopsticks::<u32>::default().build();
-        game_state.players[0].hands = vec![4; 2];
-        assert!(game_state.split(vec![5, 3]).is_err());
-        assert!(game_state.split(vec![3, 5]).is_err());
+        game_state.players[0].hands = [4; 2];
+        assert!(game_state.split([5, 3]).is_err());
+        assert!(game_state.split([3, 5]).is_err());
     }
 
     #[test]
     fn split_invalid_total() {
         let mut game_state = Chopsticks::<u32>::default().build();
-        assert!(game_state.split(vec![1, 2]).is_err());
+        assert!(game_state.split([1, 2]).is_err());
     }
 
     #[test]
     fn split_no_update() {
         let mut game_state = Chopsticks::<u32>::default().build();
         game_state.players[0].hands[1] = 1;
-        assert!(game_state.split(vec![1, 2]).is_err());
-        assert!(game_state.split(vec![2, 1]).is_err());
+        assert!(game_state.split([1, 2]).is_err());
+        assert!(game_state.split([2, 1]).is_err());
     }
 
     #[test]
@@ -336,7 +303,7 @@ mod tests {
         ] {
             game_state.players[0].hands[0] = a;
             game_state.players[0].hands[1] = b;
-            assert!(game_state.split(vec![c, d]).is_ok());
+            assert!(game_state.split([c, d]).is_ok());
             assert_eq!(game_state.players[1].hands[0], c);
             assert_eq!(game_state.players[1].hands[1], d);
         }

@@ -19,9 +19,11 @@ enum Move {
 }
 
 fn main() {
-    let mut state = Chopsticks::<u32>::default().build();
+    let builder = Chopsticks::<u32>::default();
+    let mut state = builder.build();
     loop {
         println!("{}", state.abbreviation());
+        dbg!(&state.actions().map(|x| builder.serialize_action(x)).collect::<Vec<_>>());
         let turn = state.get_turn();
         if move_prompt(turn)
             .and_then(|player_move| match player_move {
@@ -33,7 +35,7 @@ fn main() {
                 Move::Split => split_prompt(turn).and_then(|(left, right)| {
                     state
                         .apply_action(Action::Split {
-                            new_hands: vec![left, right],
+                            new_hands: [left, right],
                         })
                         .map_err(|_| PromptError)
                 }),
