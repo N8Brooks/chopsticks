@@ -1,16 +1,17 @@
-use crate::{
-    controller::Controller,
-    state::{Action, ChopsticksState},
-};
-use std::{io, str::FromStr};
+use crate::state_space::StateSpace;
+use crate::{action, controller::Controller, state::State};
+use std::{io, marker::PhantomData, str::FromStr};
 
 /// Player input could not be parsed
 struct PromptError(&'static str);
 
-pub struct CommandPrompt;
+#[derive(Clone, Default)]
+pub struct CommandPrompt<const N: usize, T: StateSpace<N>> {
+    phantom: PhantomData<T>,
+}
 
-impl Controller for CommandPrompt {
-    fn get_action(&mut self, gamestate: &ChopsticksState) -> Action {
+impl<const N: usize, T: StateSpace<N> + 'static> Controller<N, T> for CommandPrompt<N, T> {
+    fn get_action(&mut self, gamestate: &State<N, T>) -> action::Action<N, T> {
         loop {
             match self.move_prompt(gamestate) {
                 Ok(attack) => return attack,
@@ -24,10 +25,10 @@ impl Controller for CommandPrompt {
     }
 }
 
-impl CommandPrompt {
+impl<const N: usize, T: StateSpace<N>> CommandPrompt<N, T> {
     /// Prompts *player* for the move on their id
-    fn move_prompt(&self, gamestate: &ChopsticksState) -> Result<Action, PromptError> {
-        let id = gamestate.current_player_id();
+    fn move_prompt(&self, gamestate: &State<N, T>) -> Result<action::Action<N, T>, PromptError> {
+        let id = gamestate.status().get_id();
         println!("Player {id}, would you like to attack or split?");
         let mut move_buffer = String::new();
         io::stdin()
@@ -41,8 +42,8 @@ impl CommandPrompt {
     }
 
     /// Prompts *player* for attacking input
-    fn attack_prompt(&self, gamestate: &ChopsticksState) -> Result<Action, PromptError> {
-        let id = gamestate.current_player_id();
+    fn attack_prompt(&self, gamestate: &State<N, T>) -> Result<action::Action<N, T>, PromptError> {
+        let id = gamestate.status().get_id();
         let opponent_index = if gamestate.players.len() > 2 {
             println!("Player {id}, what is the index of the player you are attacking?");
             read_parsable()?
@@ -53,7 +54,7 @@ impl CommandPrompt {
         let attacking_hand_index = read_parsable()?;
         println!("Player {id}, which hand are you attacking?");
         let defending_hand_index = read_parsable()?;
-        Ok(Action::Attack {
+        Ok(action::Action::Attack {
             i: opponent_index,
             a: attacking_hand_index,
             b: defending_hand_index,
@@ -61,14 +62,14 @@ impl CommandPrompt {
     }
 
     /// Prompts *player* for defending input
-    fn split_prompt(&self, gamestate: &ChopsticksState) -> Result<Action, PromptError> {
-        let id = gamestate.current_player_id();
+    fn split_prompt(&self, gamestate: &State<N, T>) -> Result<action::Action<N, T>, PromptError> {
+        let id = gamestate.status().get_id();
         println!("Player {id}, how many fingers will you split for your left hand?");
         let left = read_parsable()?;
         println!("Player {id}, how many fingers will you split for your right hand?");
         let right = read_parsable()?;
-        Ok(Action::Split {
-            new_hands: [left, right],
+        Ok(action::Action::Split {
+            hands: [left, right],
         })
     }
 }
