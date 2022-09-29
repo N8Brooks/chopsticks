@@ -36,19 +36,14 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
     /// Returns `HandIsNotAlive` if either the attacking or defending *hand* is dead.
     fn attack(&mut self, i: usize, a: usize, b: usize) -> Result<(), action::attack::Error> {
         if i == 0 || i >= self.players.len() {
-            println!("Player index oob");
             Err(attack::Error::PlayerIndexOutOfBounds)
         } else if a >= N_HANDS || b >= N_HANDS {
-            println!("hand index oob");
-
             Err(attack::Error::HandIndexOutOfBounds)
         } else {
             let attacker = self.players[0].hands[a];
             let defending_player = &mut self.players[i];
             let defender = &mut defending_player.hands[b];
             if attacker == 0 || *defender == 0 {
-                println!("hand is not alive");
-
                 Err(attack::Error::HandIsNotAlive)
             } else {
                 *defender = (*defender + attacker) % T::ROLLOVER;

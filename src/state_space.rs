@@ -1,4 +1,4 @@
-use crate::{action, controller, game, state};
+use crate::{action, state};
 
 pub const N_HANDS: usize = 2;
 
@@ -37,14 +37,6 @@ pub trait StateSpace<const N: usize>: Sized + Copy {
     /// Generate a new chopsticks game instance
     fn get_initial_state(&self) -> state::State<N, Self> {
         state::State::default()
-    }
-
-    /// Play a game from `state` with actions from `players`
-    fn play(
-        &self,
-        players: [Box<dyn controller::Controller<N, Self>>; N],
-    ) -> game::Game<N, Self> {
-        game::Game::new(self.get_initial_state(), players)
     }
 }
 

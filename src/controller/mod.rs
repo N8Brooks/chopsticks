@@ -6,4 +6,5 @@ pub trait Controller<const N: usize, T: StateSpace<N>> {
 }
 
 pub mod command_prompt;
+pub mod pure_monte_carlo;
 pub mod random;
