@@ -16,3 +16,22 @@ impl Status {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_turn_id() {
+        let id = 0;
+        let status = Status::Turn { id };
+        assert_eq!(status.get_id(), id);
+    }
+
+    #[test]
+    fn get_over_id() {
+        let id = 0;
+        let status = Status::Over { id };
+        assert_eq!(status.get_id(), id);
+    }
+}
