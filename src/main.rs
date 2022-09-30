@@ -1,18 +1,16 @@
+use ::chopsticks::controller::*;
+use ::chopsticks::game::*;
 use ::chopsticks::state::action::Action;
 use ::chopsticks::state::status::Status;
 use ::chopsticks::state_space::*;
-use ::chopsticks::controller::*;
-use ::chopsticks::game::*;
 
 fn main() {
     // let player_1 = Box::new(command_prompt::CommandPrompt::<2, chopsticks::Chopsticks>::default());
     let player_1 = Box::new(random::Random::default());
     let player_2 = Box::new(pure_monte_carlo::PureMonteCarlo::new(1000));
     let players: [Box<dyn Controller<2, chopsticks::Chopsticks>>; 2] = [player_1, player_2];
-    let mut game = multi_player::MultiPlayer::new(
-        chopsticks::Chopsticks.get_initial_state(),
-        players,
-    );
+    let mut game =
+        multi_player::MultiPlayer::new(chopsticks::Chopsticks.get_initial_state(), players);
     while let Status::Turn { id } = game.state.get_status() {
         let abbreviation = game.state.get_abbreviation();
         if abbreviation == "0102" {

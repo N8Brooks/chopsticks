@@ -98,15 +98,18 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
     }
 
     /// Transform `GameState` with a valid `Action` or errors
-    pub fn play_action(&mut self, action: &action::Action<N, T>) -> Result<(), action::ActionError> {
+    pub fn play_action(
+        &mut self,
+        action: &action::Action<N, T>,
+    ) -> Result<(), action::ActionError> {
         match action {
             _ if self.players.len() <= 1 => Err(action::ActionError::GameIsOver),
-            action::Action::Attack { i, a, b } => {
-                self.play_attack(*i, *a, *b).map_err(action::ActionError::AttackError)
-            }
-            action::Action::Split { hands } => {
-                self.play_split(*hands).map_err(action::ActionError::SplitError)
-            }
+            action::Action::Attack { i, a, b } => self
+                .play_attack(*i, *a, *b)
+                .map_err(action::ActionError::AttackError),
+            action::Action::Split { hands } => self
+                .play_split(*hands)
+                .map_err(action::ActionError::SplitError),
             _ => panic!("phantom"),
         }
     }
@@ -153,10 +156,7 @@ mod tests {
         assert_eq!(
             Chopsticks.get_initial_state(),
             State {
-                players: VecDeque::from(vec![
-                    player::Player::new(0),
-                    player::Player::new(1),
-                ]),
+                players: VecDeque::from(vec![player::Player::new(0), player::Player::new(1),]),
                 phantom: PhantomData {},
             }
         );

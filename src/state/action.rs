@@ -9,7 +9,6 @@ pub enum Action<const N: usize, T: state_space::StateSpace<N>> {
     _Phantom(Infallible, PhantomData<T>),
 }
 
-
 #[derive(Debug)]
 pub enum ActionError {
     GameIsOver,

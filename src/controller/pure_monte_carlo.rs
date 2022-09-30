@@ -26,7 +26,8 @@ impl<const N: usize, T: state_space::StateSpace<N>> controller::Controller<N, T>
                     .map(|_| {
                         let mut state = state.clone();
                         state.play_action(action).expect("valid action");
-                        let mut sim_game = game::single_player::SinglePlayer::new(state, &mut self.controller);
+                        let mut sim_game =
+                            game::single_player::SinglePlayer::new(state, &mut self.controller);
                         let ranks = sim_game.get_rankings();
                         ranks[id]
                     })

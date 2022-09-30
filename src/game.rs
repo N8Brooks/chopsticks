@@ -6,7 +6,10 @@ use crate::{controller, state, state_space};
 pub trait Game<const N: usize, T: state_space::StateSpace<N>> {
     fn get_action(&mut self) -> Option<state::action::Action<N, T>>;
 
-    fn play_action(&mut self, action: &state::action::Action<N, T>) -> Result<(), state::action::ActionError>;
+    fn play_action(
+        &mut self,
+        action: &state::action::Action<N, T>,
+    ) -> Result<(), state::action::ActionError>;
 }
 
 pub mod single_player {
@@ -73,7 +76,10 @@ pub mod single_player {
             }
         }
 
-        fn play_action(&mut self, action: &state::action::Action<N, T>) -> Result<(), state::action::ActionError> {
+        fn play_action(
+            &mut self,
+            action: &state::action::Action<N, T>,
+        ) -> Result<(), state::action::ActionError> {
             self.history.push(*action);
             self.state.play_action(action)
         }
@@ -113,7 +119,10 @@ pub mod multi_player {
             }
         }
 
-        fn play_action(&mut self, action: &state::action::Action<N, T>) -> Result<(), state::action::ActionError> {
+        fn play_action(
+            &mut self,
+            action: &state::action::Action<N, T>,
+        ) -> Result<(), state::action::ActionError> {
             self.history.push(*action);
             self.state.play_action(action)
         }
