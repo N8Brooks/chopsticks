@@ -1,4 +1,4 @@
-use ::chopsticks::action::Action;
+use ::chopsticks::state::action::Action;
 use ::chopsticks::state::status::Status;
 use ::chopsticks::state_space::*;
 use ::chopsticks::controller::*;
@@ -13,12 +13,12 @@ fn main() {
         chopsticks::Chopsticks.get_initial_state(),
         players,
     );
-    while let Status::Turn { id } = game.state.status() {
-        let abbreviation = game.state.abbreviation();
+    while let Status::Turn { id } = game.state.get_status() {
+        let abbreviation = game.state.get_abbreviation();
         if abbreviation == "0102" {
             panic!("never ending state detected");
         }
-        println!("{}", game.state.abbreviation());
+        println!("{}", game.state.get_abbreviation());
         let action = game.get_action().unwrap();
         match action {
             Action::Attack { i, a, b } => {
@@ -38,7 +38,7 @@ fn main() {
             continue;
         }
     }
-    match game.state.status() {
+    match game.state.get_status() {
         Status::Over { id } => println!("Player {id}, you won!"),
         Status::Turn { id: _ } => panic!("expect over"),
     };

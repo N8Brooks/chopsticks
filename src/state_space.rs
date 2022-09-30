@@ -1,4 +1,4 @@
-use crate::{action, state};
+use crate::state;
 
 pub const N_HANDS: usize = 2;
 
@@ -19,7 +19,7 @@ pub trait StateSpace<const N: usize>: Sized + Copy {
         }) * Self::SPLIT_OFFSET
     }
 
-    fn serialize_action(&self, _action: &action::Action<N, Self>) -> u32 {
+    fn serialize_action(&self, _action: &state::action::Action<N, Self>) -> u32 {
         panic!("not implemented");
         // match action {
         //     ChopsticksAction::Attack(_) => S::zero(),
