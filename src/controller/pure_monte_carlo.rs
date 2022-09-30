@@ -25,7 +25,7 @@ impl<const N: usize, T: state_space::StateSpace<N>> controller::Controller<N, T>
             .min_by_key(|action| {
                 (0..self.n_sims)
                     .map(|_| {
-                        let mut sim_game = game::single_player::SinglePlayer::new(
+                        let mut sim_game = game::single_strategy::SingleStrategy::new(
                             state.clone(),
                             &mut self.controller,
                         );

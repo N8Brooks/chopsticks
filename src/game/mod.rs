@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 // A trait may be over-engineering the problem at hand.
 
-pub mod multi_player;
-pub mod single_player;
+pub mod multi_strategy;
+pub mod single_strategy;
 
 /// Encapsulates gameplay within a certain statespace amoung players.
 pub trait Game<const N: usize, T: state_space::StateSpace<N>> {

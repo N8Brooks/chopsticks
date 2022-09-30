@@ -10,7 +10,7 @@ fn main() {
     let player_2 = Box::new(pure_monte_carlo::PureMonteCarlo::new(1000));
     let players: [Box<dyn Controller<2, chopsticks::Chopsticks>>; 2] = [player_1, player_2];
     let mut game =
-        multi_player::MultiPlayer::new(chopsticks::Chopsticks.get_initial_state(), players);
+        multi_strategy::MultiStrategy::new(chopsticks::Chopsticks.get_initial_state(), players);
     while let Status::Turn { id } = game.state.get_status() {
         if game.state.is_loop_state() {
             break;

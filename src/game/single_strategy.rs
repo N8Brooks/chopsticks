@@ -2,29 +2,29 @@ pub use crate::game::Game;
 use crate::{controller, state, state_space};
 
 // One controller determines all moves for a game.
-pub struct SinglePlayer<'a, const N: usize, T: state_space::StateSpace<N>> {
-    pub player: &'a mut dyn controller::Controller<N, T>,
+pub struct SingleStrategy<'a, const N: usize, T: state_space::StateSpace<N>> {
+    pub strategy: &'a mut dyn controller::Controller<N, T>,
     pub state: state::State<N, T>,
     pub history: Vec<state::action::Action<N, T>>,
 }
 
-impl<'a, const N: usize, T: state_space::StateSpace<N>> SinglePlayer<'a, N, T> {
+impl<'a, const N: usize, T: state_space::StateSpace<N>> SingleStrategy<'a, N, T> {
     pub fn new(
         state: state::State<N, T>,
-        player: &'a mut dyn controller::Controller<N, T>,
-    ) -> SinglePlayer<'a, N, T> {
-        SinglePlayer {
-            player,
+        strategy: &'a mut dyn controller::Controller<N, T>,
+    ) -> SingleStrategy<'a, N, T> {
+        SingleStrategy {
+            strategy,
             state,
             history: Vec::new(),
         }
     }
 }
 
-impl<'a, const N: usize, T: state_space::StateSpace<N>> Game<N, T> for SinglePlayer<'a, N, T> {
+impl<'a, const N: usize, T: state_space::StateSpace<N>> Game<N, T> for SingleStrategy<'a, N, T> {
     fn get_action(&mut self) -> Option<state::action::Action<N, T>> {
         match self.state.get_status() {
-            state::status::Status::Turn { id: _ } => Some(self.player.get_action(&self.state)),
+            state::status::Status::Turn { id: _ } => Some(self.strategy.get_action(&self.state)),
             _ => None,
         }
     }
