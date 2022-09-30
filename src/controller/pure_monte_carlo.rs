@@ -1,4 +1,5 @@
 use crate::{controller, game, state, state_space};
+use game::Game;
 use std::marker::PhantomData;
 
 /// Best min-max move according to `n_sims` for each potential move
@@ -24,10 +25,11 @@ impl<const N: usize, T: state_space::StateSpace<N>> controller::Controller<N, T>
             .min_by_key(|action| {
                 (0..self.n_sims)
                     .map(|_| {
-                        let mut state = state.clone();
-                        state.play_action(action).expect("valid action");
-                        let mut sim_game =
-                            game::single_player::SinglePlayer::new(state, &mut self.controller);
+                        let mut sim_game = game::single_player::SinglePlayer::new(
+                            state.clone(),
+                            &mut self.controller,
+                        );
+                        sim_game.play_action(action).expect("valid action");
                         let ranks = sim_game.get_rankings();
                         ranks[id]
                     })
