@@ -152,7 +152,9 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         if T::N_PLAYERS != 2 || T::INITIAL_FINGERS != 1 || T::ROLLOVER != 5 {
             panic!("not implemented for the `SpaceState`");
         }
-        self.players[0].hands == [0, 1] && self.players[0].hands == [0, 2]
+        let [a, b] = self.players[0].hands;
+        let [c, d] = self.players[1].hands;
+        a == 0 && b == 1 && c == 0 && d == 2
     }
 }
 

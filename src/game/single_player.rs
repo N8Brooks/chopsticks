@@ -21,6 +21,7 @@ impl<'a, const N: usize, T: state_space::StateSpace<N>> SinglePlayer<'a, N, T> {
         }
     }
 
+    /// The ranks of each player or `None` if they were already dead
     pub fn get_rankings(&mut self) -> [Option<usize>; N] {
         let mut ranks = [None; N];
         while let state::status::Status::Turn { id: _ } = self.state.get_status() {
