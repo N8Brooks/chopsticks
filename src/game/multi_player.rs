@@ -36,4 +36,8 @@ impl<const N: usize, T: state_space::StateSpace<N>> Game<N, T> for MultiPlayer<N
         self.history.push(*action);
         self.state.play_action(action)
     }
+
+    fn get_state(&self) -> &state::State<N, T> {
+        &self.state
+    }
 }
