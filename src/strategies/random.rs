@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 #[derive(Clone, Default)]
 pub struct Random;
 
-impl<const N: usize, T: state_space::StateSpace<N>> super::Controller<N, T> for Random {
+impl<const N: usize, T: state_space::StateSpace<N>> super::Strategy<N, T> for Random {
     fn get_action(&mut self, gamestate: &state::State<N, T>) -> state::action::Action<N, T> {
         let mut actions: Vec<_> = gamestate.iter_actions().collect();
         *actions

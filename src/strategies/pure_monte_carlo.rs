@@ -1,4 +1,5 @@
-use crate::{controller, game, state, state_space};
+use super::*;
+use crate::{game, state, state_space};
 use game::Game;
 use std::marker::PhantomData;
 
@@ -8,13 +9,11 @@ use std::marker::PhantomData;
 pub struct PureMonteCarlo<const N: usize, T: state_space::StateSpace<N>> {
     /// Number of simulations run for each potential move
     n_sims: usize,
-    controller: controller::random::Random,
+    strategies: random::Random,
     phantom: PhantomData<T>,
 }
 
-impl<const N: usize, T: state_space::StateSpace<N>> controller::Controller<N, T>
-    for PureMonteCarlo<N, T>
-{
+impl<const N: usize, T: state_space::StateSpace<N>> Strategy<N, T> for PureMonteCarlo<N, T> {
     fn get_action(&mut self, state: &state::State<N, T>) -> state::action::Action<N, T> {
         let id = match state.get_status() {
             state::status::Status::Turn { id } => id,
@@ -27,7 +26,7 @@ impl<const N: usize, T: state_space::StateSpace<N>> controller::Controller<N, T>
                     .map(|_| {
                         let mut sim_game = game::single_strategy::SingleStrategy::new(
                             state.clone(),
-                            &mut self.controller,
+                            &mut self.strategies,
                         );
                         sim_game.play_action(action).expect("valid action");
                         let ranks = sim_game.get_rankings();
@@ -43,7 +42,7 @@ impl<const N: usize, T: state_space::StateSpace<N>> PureMonteCarlo<N, T> {
     pub fn new(n_sims: usize) -> PureMonteCarlo<N, T> {
         PureMonteCarlo {
             n_sims,
-            controller: controller::random::Random {},
+            strategies: random::Random {},
             phantom: PhantomData {},
         }
     }

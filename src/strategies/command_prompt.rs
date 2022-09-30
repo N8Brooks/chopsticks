@@ -1,4 +1,4 @@
-use crate::{controller, state, state_space};
+use crate::{strategies, state, state_space};
 use std::{io, marker::PhantomData, str::FromStr};
 
 /// Player input could not be parsed
@@ -10,7 +10,7 @@ pub struct CommandPrompt<const N: usize, T: state_space::StateSpace<N>> {
     phantom: PhantomData<T>,
 }
 
-impl<const N: usize, T: state_space::StateSpace<N> + 'static> controller::Controller<N, T>
+impl<const N: usize, T: state_space::StateSpace<N> + 'static> strategies::Strategy<N, T>
     for CommandPrompt<N, T>
 {
     fn get_action(&mut self, gamestate: &state::State<N, T>) -> state::action::Action<N, T> {

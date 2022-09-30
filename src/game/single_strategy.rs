@@ -1,9 +1,9 @@
 pub use crate::game::Game;
-use crate::{controller, state, state_space};
+use crate::{strategies, state, state_space};
 
 // One controller determines all moves for a game.
 pub struct SingleStrategy<'a, const N: usize, T: state_space::StateSpace<N>> {
-    pub strategy: &'a mut dyn controller::Controller<N, T>,
+    pub strategy: &'a mut dyn strategies::Strategy<N, T>,
     pub state: state::State<N, T>,
     pub history: Vec<state::action::Action<N, T>>,
 }
@@ -11,7 +11,7 @@ pub struct SingleStrategy<'a, const N: usize, T: state_space::StateSpace<N>> {
 impl<'a, const N: usize, T: state_space::StateSpace<N>> SingleStrategy<'a, N, T> {
     pub fn new(
         state: state::State<N, T>,
-        strategy: &'a mut dyn controller::Controller<N, T>,
+        strategy: &'a mut dyn strategies::Strategy<N, T>,
     ) -> SingleStrategy<'a, N, T> {
         SingleStrategy {
             strategy,
