@@ -40,18 +40,16 @@ pub mod single_player {
 
         pub fn get_rankings(&mut self) -> [Option<usize>; N] {
             let mut ranks = [None; N];
-            let player_ids = self.get_player_ids();
             while let status::Status::Turn { id: _ } = self.state.get_status() {
-                let action = self.get_action().expect("ongoing game");
-                self.state.play_action(&action).expect("valid action");
-                let abbreviation = self.state.get_abbreviation();
-                if abbreviation == "0102" {
-                    // never ending
+                if self.state.is_loop_state() {
                     break;
                 }
-                let new_player_ids = self.get_player_ids();
-                for &id in player_ids.difference(&new_player_ids) {
-                    ranks[id] = Some(player_ids.len());
+                let action = self.get_action().expect("ongoing game");
+                self.state.play_action(&action).expect("valid action");
+                let player_ids = self.get_player_ids();
+                let n_players = player_ids.len();
+                for id in player_ids {
+                    ranks[id] = Some(n_players);
                 }
             }
             ranks

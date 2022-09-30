@@ -12,9 +12,8 @@ fn main() {
     let mut game =
         multi_player::MultiPlayer::new(chopsticks::Chopsticks.get_initial_state(), players);
     while let Status::Turn { id } = game.state.get_status() {
-        let abbreviation = game.state.get_abbreviation();
-        if abbreviation == "0102" {
-            panic!("never ending state detected");
+        if game.state.is_loop_state() {
+            break;
         }
         println!("{}", game.state.get_abbreviation());
         let action = game.get_action().unwrap();
@@ -38,6 +37,6 @@ fn main() {
     }
     match game.state.get_status() {
         Status::Over { id } => println!("Player {id}, you won!"),
-        Status::Turn { id: _ } => panic!("expect over"),
+        Status::Turn { id: _ } => println!("The game cannot end from here. Tie!"),
     };
 }

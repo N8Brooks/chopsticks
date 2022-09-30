@@ -110,7 +110,7 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
             action::Action::Split { hands } => self
                 .play_split(*hands)
                 .map_err(action::ActionError::SplitError),
-            _ => panic!("phantom"),
+            _ => panic!("expect not phantom"),
         }
     }
 
@@ -132,17 +132,27 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
             .collect()
     }
 
-    /// Current game stage
+    /// Current game stage panics with no players
     pub fn get_status(&self) -> status::Status {
         if self.players.is_empty() {
             panic!("no non-eliminated players remain");
-        }
-        let id = self.players[0].id;
-        if self.players.len() == 1 {
-            status::Status::Over { id }
         } else {
-            status::Status::Turn { id }
+            let id = self.players[0].id;
+            if self.players.len() == 1 {
+                status::Status::Over { id }
+            } else {
+                status::Status::Turn { id }
+            }
         }
+    }
+
+    /// Detects loop state for 2 player with rollover 5
+    pub fn is_loop_state(&self) -> bool {
+        // Could this be done another way?
+        if T::N_PLAYERS != 2 || T::INITIAL_FINGERS != 1 || T::ROLLOVER != 5 {
+            panic!("not implemented for the `SpaceState`");
+        }
+        self.players[0].hands == [0, 1] && self.players[0].hands == [0, 2]
     }
 }
 
