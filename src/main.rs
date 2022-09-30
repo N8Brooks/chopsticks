@@ -1,8 +1,8 @@
-use ::chopsticks::strategies::*;
 use ::chopsticks::game::*;
 use ::chopsticks::state::action::Action;
 use ::chopsticks::state::status::Status;
 use ::chopsticks::state_space::*;
+use ::chopsticks::strategies::*;
 
 fn main() {
     // let player_1 = Box::new(command_prompt::CommandPrompt::<2, chopsticks::Chopsticks>::default());

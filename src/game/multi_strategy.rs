@@ -1,5 +1,5 @@
 pub use crate::game::Game;
-use crate::{strategies, state, state_space};
+use crate::{state, state_space, strategies};
 
 /// Each player's actions is determined by its own controller.
 pub struct MultiStrategy<const N: usize, T: state_space::StateSpace<N>> {

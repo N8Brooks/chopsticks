@@ -1,5 +1,5 @@
 pub use crate::game::Game;
-use crate::{strategies, state, state_space};
+use crate::{state, state_space, strategies};
 
 // One controller determines all moves for a game.
 pub struct SingleStrategy<'a, const N: usize, T: state_space::StateSpace<N>> {

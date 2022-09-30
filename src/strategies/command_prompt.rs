@@ -1,4 +1,4 @@
-use crate::{strategies, state, state_space};
+use crate::{state, state_space, strategies};
 use std::{io, marker::PhantomData, str::FromStr};
 
 /// Player input could not be parsed

@@ -71,9 +71,10 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
     pub fn play_split(&mut self, mut new_hands: [u32; N_HANDS]) -> Result<(), action::SplitError> {
         new_hands.sort_unstable();
         if self.players[0].hands == new_hands {
+            // does this even work?
             Err(action::SplitError::MoveWithoutChange)
         } else if new_hands.iter().sum::<u32>() != self.players[0].hands.iter().sum() {
-            Err(action::SplitError::InvalidTotalRollover)
+            Err(action::SplitError::InvalidTotalFingers)
         } else if new_hands
             .iter()
             .any(|hand| !(1..T::ROLLOVER).contains(hand))
@@ -93,8 +94,8 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         let stop = total / 2;
         (start..=stop)
             .map(move |a| -> [u32; N_HANDS] { [a, total - a] })
-            .filter(|&new_hands| self.players[0].hands != new_hands)
-            .map(|new_hands| action::Action::Split { hands: new_hands })
+            .filter(|&new_hands| self.players[0].hands != new_hands) // again, does this even work?
+            .map(|hands| action::Action::Split { hands })
     }
 
     /// Transform `GameState` with a valid `Action` or errors
@@ -156,6 +157,16 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         let [c, d] = self.players[1].hands;
         a == 0 && b == 1 && c == 0 && d == 2
     }
+
+    /// A serial with a 1:1 mapping to state, ignoring player order
+    pub fn serialize(&self) -> u32 {
+        let players_serial = self.players.iter().fold(0, |serial, player| {
+            T::PLAYER_SERIAL_BASE * serial + player.serialize()
+        });
+        let n_eliminated_players = T::N_PLAYERS - self.players.len();
+        let eliminated_players_serial = T::PLAYER_SERIAL_BASE.pow(n_eliminated_players as u32);
+        players_serial * eliminated_players_serial
+    }
 }
 
 #[cfg(test)]
@@ -213,6 +224,7 @@ mod tests {
         assert_eq!(game_state.players[0].id, 1);
         assert_eq!(game_state.players[0].hands[0], 0);
     }
+
     #[test]
     fn split_with_zero() {
         let mut game_state = Chopsticks.get_initial_state();
@@ -288,5 +300,23 @@ mod tests {
             game_state.get_status(),
             status::Status::Over { id: 0 }
         ));
+    }
+
+    #[test]
+    fn serialize() {
+        let mut serial = 0;
+        for player_1_serial in 0..Chopsticks::PLAYER_SERIAL_BASE {
+            for player_2_serial in 0..Chopsticks::PLAYER_SERIAL_BASE {
+                let player_1 = player::Player::<2, Chopsticks>::from_serial(0, player_1_serial);
+                let player_2 = player::Player::<2, Chopsticks>::from_serial(1, player_2_serial);
+                let players = VecDeque::from([player_1, player_2]);
+                let state = State {
+                    players,
+                    phantom: PhantomData {},
+                };
+                assert_eq!(state.serialize(), serial);
+                serial += 1;
+            }
+        }
     }
 }
