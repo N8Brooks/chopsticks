@@ -24,7 +24,7 @@ impl<'a, const N: usize, T: state_space::StateSpace<N>> SingleStrategy<'a, N, T>
 impl<'a, const N: usize, T: state_space::StateSpace<N>> Game<N, T> for SingleStrategy<'a, N, T> {
     fn get_action(&mut self) -> Option<state::action::Action<N, T>> {
         match self.state.get_status() {
-            state::status::Status::Turn { id: _ } => Some(self.strategy.get_action(&self.state)),
+            state::status::Status::Turn { i: _ } => Some(self.strategy.get_action(&self.state)),
             _ => None,
         }
     }

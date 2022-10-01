@@ -1,18 +1,18 @@
 /// Game status
 pub enum Status {
     /// The player id of the player for the current turn
-    Turn { id: usize },
+    Turn { i: usize },
 
     /// The winner id after the game is over
-    Over { id: usize },
+    Over { i: usize },
 }
 
 impl Status {
     // The current player id regardless of the game status
-    pub fn get_id(&self) -> usize {
+    pub fn get_i(&self) -> usize {
         match *self {
-            Status::Turn { id } => id,
-            Status::Over { id } => id,
+            Status::Turn { i } => i,
+            Status::Over { i } => i,
         }
     }
 }
@@ -22,16 +22,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_turn_id() {
-        let id = 0;
-        let status = Status::Turn { id };
-        assert_eq!(status.get_id(), id);
+    fn get_turn_i() {
+        let i = 0;
+        let status = Status::Turn { i };
+        assert_eq!(status.get_i(), i);
     }
 
     #[test]
-    fn get_over_id() {
-        let id = 0;
-        let status = Status::Over { id };
-        assert_eq!(status.get_id(), id);
+    fn get_over_i() {
+        let i = 0;
+        let status = Status::Over { i };
+        assert_eq!(status.get_i(), i);
     }
 }

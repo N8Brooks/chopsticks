@@ -32,7 +32,10 @@ pub trait StateSpace<const N: usize>: Sized + Copy {
     const STATE_SERIAL_BASE: u32 = Self::PLAYER_SERIAL_BASE.pow(Self::N_PLAYERS as u32);
 
     /// Generate a new chopsticks game instance
-    fn get_initial_state(&self) -> state::State<N, Self> {
+    fn get_initial_state(&self) -> state::State<N, Self>
+    where
+        Self: std::fmt::Debug,
+    {
         state::State::default()
     }
 }

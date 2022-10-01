@@ -15,9 +15,9 @@ pub struct PureMonteCarlo<const N: usize, T: state_space::StateSpace<N>> {
 
 impl<const N: usize, T: state_space::StateSpace<N>> Strategy<N, T> for PureMonteCarlo<N, T> {
     fn get_action(&mut self, state: &state::State<N, T>) -> state::action::Action<N, T> {
-        let id = match state.get_status() {
-            state::status::Status::Turn { id } => id,
-            state::status::Status::Over { id: _ } => panic!("game is over"),
+        let i = match state.get_status() {
+            state::status::Status::Turn { i } => i,
+            state::status::Status::Over { i: _ } => panic!("game is over"),
         };
         state
             .iter_actions()
@@ -30,7 +30,7 @@ impl<const N: usize, T: state_space::StateSpace<N>> Strategy<N, T> for PureMonte
                         );
                         sim_game.play_action(action).expect("valid action");
                         let ranks = sim_game.get_rankings();
-                        ranks[id]
+                        ranks[i]
                     })
                     .max()
             })

@@ -24,7 +24,7 @@ impl<const N: usize, T: state_space::StateSpace<N>> MultiStrategy<N, T> {
 impl<const N: usize, T: state_space::StateSpace<N>> Game<N, T> for MultiStrategy<N, T> {
     fn get_action(&mut self) -> Option<state::action::Action<N, T>> {
         match self.state.get_status() {
-            state::status::Status::Turn { id } => Some(self.strategies[id].get_action(&self.state)),
+            state::status::Status::Turn { i } => Some(self.strategies[i].get_action(&self.state)),
             _ => None,
         }
     }

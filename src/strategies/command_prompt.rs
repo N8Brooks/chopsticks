@@ -33,8 +33,8 @@ impl<const N: usize, T: state_space::StateSpace<N>> CommandPrompt<N, T> {
         &self,
         gamestate: &state::State<N, T>,
     ) -> Result<state::action::Action<N, T>, PromptError> {
-        let id = gamestate.get_status().get_id();
-        println!("Player {id}, would you like to attack or split?");
+        let i = gamestate.get_status().get_i();
+        println!("Player {i}, would you like to attack or split?");
         let mut move_buffer = String::new();
         io::stdin()
             .read_line(&mut move_buffer)
@@ -51,19 +51,20 @@ impl<const N: usize, T: state_space::StateSpace<N>> CommandPrompt<N, T> {
         &self,
         gamestate: &state::State<N, T>,
     ) -> Result<state::action::Action<N, T>, PromptError> {
-        let id = gamestate.get_status().get_id();
-        let opponent_index = if gamestate.players.len() > 2 {
-            println!("Player {id}, what is the index of the player you are attacking?");
+        let i = gamestate.get_status().get_i();
+        let j = if gamestate.players.len() > 2 {
+            println!("Player {i}, what is the index of the player you are attacking?");
             read_parsable()?
         } else {
-            1
+            1 - i
         };
-
+        println!("Player {i}, which hand are you using to attack?");
         let attacking_hand_index = read_parsable()?;
-        println!("Player {id}, which hand are you attacking?");
+        println!("Player {i}, which hand are you attacking?");
         let defending_hand_index = read_parsable()?;
         Ok(state::action::Action::Attack {
-            i: opponent_index,
+            i,
+            j,
             a: attacking_hand_index,
             b: defending_hand_index,
         })
@@ -74,12 +75,13 @@ impl<const N: usize, T: state_space::StateSpace<N>> CommandPrompt<N, T> {
         &self,
         gamestate: &state::State<N, T>,
     ) -> Result<state::action::Action<N, T>, PromptError> {
-        let id = gamestate.get_status().get_id();
-        println!("Player {id}, how many fingers will you split for your left hand?");
+        let i = gamestate.get_status().get_i();
+        println!("Player {i}, how many fingers will you split for your left hand?");
         let left = read_parsable()?;
-        println!("Player {id}, how many fingers will you split for your right hand?");
+        println!("Player {i}, how many fingers will you split for your right hand?");
         let right = read_parsable()?;
         Ok(state::action::Action::Split {
+            i,
             hands: [left, right],
         })
     }
