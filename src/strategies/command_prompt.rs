@@ -82,7 +82,8 @@ impl<const N: usize, T: state_space::StateSpace<N>> CommandPrompt<N, T> {
         let right = read_parsable()?;
         Ok(state::action::Action::Split {
             i,
-            hands: [left, right],
+            hands_0: gamestate.players[i].hands,
+            hands_1: [left, right],
         })
     }
 }

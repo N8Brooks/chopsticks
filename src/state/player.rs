@@ -27,14 +27,6 @@ impl<const N: usize, T: StateSpace<N>> Player<N, T> {
             .filter(|(_, &fingers)| fingers != 0)
             .map(|(i, _)| i)
     }
-
-    pub fn is_hands_equal(&self, new_hands: [u32; N_HANDS]) -> bool {
-        let mut old_hands = self.hands;
-        old_hands.sort_unstable();
-        let mut new_hands = new_hands;
-        new_hands.sort_unstable();
-        old_hands == new_hands
-    }
 }
 
 impl<const N: usize, T: StateSpace<N>> Default for Player<N, T> {

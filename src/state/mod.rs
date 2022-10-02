@@ -55,7 +55,36 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
                 Err(action::AttackError::HandIsNotAlive)
             } else {
                 *defender = (*defender + attacker) % T::ROLLOVER;
-                self.iterate_turn();
+                self.play_iterate_turn();
+                Ok(())
+            }
+        }
+    }
+
+    /// Player `i` uses hand `a` to attack player `j` at hand `b`.
+    pub fn undo_attack(
+        &mut self,
+        i: usize,
+        j: usize,
+        a: usize,
+        b: usize,
+    ) -> Result<(), action::AttackError> {
+        if i >= self.players.len() || j >= self.players.len() {
+            Err(action::AttackError::PlayerIndexOutOfBounds)
+        } else if a >= N_HANDS || b >= N_HANDS {
+            Err(action::AttackError::HandIndexOutOfBounds)
+        } else if i == j {
+            Err(action::AttackError::PlayerAttackSelf)
+        } else {
+            let attacker = self.players[i].hands[a];
+            let defending_player = &mut self.players[j];
+            let defender = &mut defending_player.hands[b];
+            let updated_defender = (*defender + (T::ROLLOVER - attacker)) % T::ROLLOVER;
+            if updated_defender == 0 {
+                Err(action::AttackError::HandIsNotAlive)
+            } else {
+                *defender = updated_defender;
+                self.undo_iterate_turn();
                 Ok(())
             }
         }
@@ -80,18 +109,42 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
     pub fn play_split(
         &mut self,
         i: usize,
-        hands: [u32; N_HANDS],
+        hands_0: [u32; N_HANDS],
+        hands_1: [u32; N_HANDS],
     ) -> Result<(), action::SplitError> {
-        if self.players[i].is_hands_equal(hands) {
-            // does this even work?
+        if hands_0 != self.players[i].hands {
+            Err(action::SplitError::ImproperContext)
+        } else if hands_0.iter().sorted().eq(&hands_1.iter().sorted()) {
             Err(action::SplitError::MoveWithoutChange)
-        } else if hands.iter().sum::<u32>() != self.players[i].hands.iter().sum() {
+        } else if hands_0.iter().sum::<u32>() != hands_1.iter().sum() {
             Err(action::SplitError::InvalidTotalFingers)
-        } else if hands.iter().any(|hand| !(1..T::ROLLOVER).contains(hand)) {
+        } else if hands_1.iter().any(|hand| !(1..T::ROLLOVER).contains(hand)) {
             Err(action::SplitError::InvalidFingerValue)
         } else {
-            self.players[i].hands = hands;
-            self.iterate_turn();
+            self.players[i].hands = hands_1;
+            self.play_iterate_turn();
+            Ok(())
+        }
+    }
+
+    /// The player transfers or divides rollover among their hands.
+    pub fn undo_split(
+        &mut self,
+        i: usize,
+        hands_0: [u32; N_HANDS],
+        hands_1: [u32; N_HANDS],
+    ) -> Result<(), action::SplitError> {
+        if hands_1 != self.players[i].hands {
+            Err(action::SplitError::ImproperContext)
+        } else if hands_0.iter().sorted().eq(&hands_1.iter().sorted()) {
+            Err(action::SplitError::MoveWithoutChange)
+        } else if hands_0.iter().sum::<u32>() != hands_1.iter().sum() {
+            Err(action::SplitError::InvalidTotalFingers)
+        } else if hands_0.iter().any(|hand| !(1..T::ROLLOVER).contains(hand)) {
+            Err(action::SplitError::InvalidFingerValue)
+        } else {
+            self.players[i].hands = hands_0;
+            self.undo_iterate_turn();
             Ok(())
         }
     }
@@ -103,8 +156,18 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         let stop = total / 2;
         (start..=stop)
             .map(move |a| -> [u32; N_HANDS] { [a, total - a] })
-            .filter(|&hands| !self.players[self.i].is_hands_equal(hands)) // again, does this even work?
-            .map(|hands| action::Action::Split { i: self.i, hands })
+            .filter(|&hands| {
+                !self.players[self.i]
+                    .hands
+                    .iter()
+                    .sorted()
+                    .eq(&hands.iter().sorted())
+            })
+            .map(|hands_1| action::Action::Split {
+                i: self.i,
+                hands_0: self.players[self.i].hands,
+                hands_1,
+            })
     }
 
     /// Transform `GameState` with a valid `Action` or errors
@@ -118,8 +181,31 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
             action::Action::Attack { i, j, a, b } => self
                 .play_attack(*i, *j, *a, *b)
                 .map_err(action::ActionError::AttackError),
-            action::Action::Split { i, hands } => self
-                .play_split(*i, *hands)
+            action::Action::Split {
+                i,
+                hands_0,
+                hands_1,
+            } => self
+                .play_split(*i, *hands_0, *hands_1)
+                .map_err(action::ActionError::SplitError),
+            _ => panic!("expect not phantom"),
+        }
+    }
+
+    pub fn undo_action(
+        &mut self,
+        action: &action::Action<N, T>,
+    ) -> Result<(), action::ActionError> {
+        match action {
+            action::Action::Attack { i, j, a, b } => self
+                .undo_attack(*i, *j, *a, *b)
+                .map_err(action::ActionError::AttackError),
+            action::Action::Split {
+                i,
+                hands_0,
+                hands_1,
+            } => self
+                .undo_split(*i, *hands_0, *hands_1)
                 .map_err(action::ActionError::SplitError),
             _ => panic!("expect not phantom"),
         }
@@ -131,14 +217,31 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
     }
 
     /// Updates `i` to indicate the next *player's* turn
-    fn iterate_turn(&mut self) {
+    fn play_iterate_turn(&mut self) {
         if matches!(self.get_status(), status::Status::Turn { .. }) {
             self.i = self
                 .players
                 .iter()
                 .enumerate()
+                .filter(|(_, player)| !player.is_eliminated())
                 .cycle()
                 .nth(self.i + 1)
+                .expect("multiple players")
+                .0;
+        }
+    }
+
+    /// Updates `i` to indicate the previous player's turn
+    fn undo_iterate_turn(&mut self) {
+        if matches!(self.get_status(), status::Status::Turn { .. }) {
+            self.i = self
+                .players
+                .iter()
+                .enumerate()
+                .filter(|(_, player)| !player.is_eliminated())
+                .rev()
+                .cycle()
+                .nth(T::N_PLAYERS - self.i)
                 .expect("multiple players")
                 .0;
         }
@@ -168,8 +271,10 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         if T::N_PLAYERS != 2 || T::INITIAL_FINGERS != 1 || T::ROLLOVER != 5 {
             panic!("not implemented for the `SpaceState`");
         }
-        self.players[0].is_hands_equal([0, 1]) && self.players[1].is_hands_equal([0, 2])
-            || self.players[0].is_hands_equal([0, 2]) && self.players[1].is_hands_equal([0, 1])
+        self.players[0].hands.iter().sorted().eq(&[&0, &1])
+            && self.players[1].hands.iter().sorted().eq(&[&0, &2])
+            || self.players[0].hands.iter().sorted().eq(&[&0, &2])
+                && self.players[1].hands.iter().sorted().eq(&[&0, &1])
     }
 
     /// Iterate non eliminated player indexes
@@ -241,30 +346,30 @@ mod tests {
     #[test]
     fn split_with_zero() {
         let mut game_state = Chopsticks.get_initial_state();
-        assert!(game_state.play_split(0, [0, 2]).is_err());
-        assert!(game_state.play_split(0, [2, 0]).is_err());
+        assert!(game_state.play_split(0, [1, 1], [0, 2]).is_err());
+        assert!(game_state.play_split(0, [1, 1], [2, 0]).is_err());
     }
 
     #[test]
     fn split_with_five() {
         let mut game_state = Chopsticks.get_initial_state();
         game_state.players[0].hands = [4; 2];
-        assert!(game_state.play_split(0, [5, 3]).is_err());
-        assert!(game_state.play_split(0, [3, 5]).is_err());
+        assert!(game_state.play_split(0, [4, 4], [5, 3]).is_err());
+        assert!(game_state.play_split(0, [4, 4], [3, 5]).is_err());
     }
 
     #[test]
     fn split_invalid_total() {
         let mut game_state = Chopsticks.get_initial_state();
-        assert!(game_state.play_split(0, [1, 2]).is_err());
+        assert!(game_state.play_split(0, [1, 1], [1, 2]).is_err());
     }
 
     #[test]
     fn split_no_update() {
         let mut game_state = Chopsticks.get_initial_state();
-        game_state.players[0].hands[1] = 1;
-        assert!(game_state.play_split(0, [1, 2]).is_err());
-        assert!(game_state.play_split(0, [2, 1]).is_err());
+        game_state.players[0].hands[1] = 2;
+        assert!(game_state.play_split(0, [1, 2], [1, 2]).is_err());
+        assert!(game_state.play_split(0, [1, 2], [2, 1]).is_err());
     }
 
     #[test]
@@ -286,7 +391,7 @@ mod tests {
         ] {
             game_state.players[0].hands[0] = a;
             game_state.players[0].hands[1] = b;
-            assert!(game_state.play_split(0, [c, d]).is_ok());
+            assert!(game_state.play_split(0, [a, b], [c, d]).is_ok());
             assert_eq!(game_state.players[0].hands[0], c);
             assert_eq!(game_state.players[0].hands[1], d);
         }

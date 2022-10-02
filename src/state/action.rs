@@ -12,7 +12,8 @@ pub enum Action<const N: usize, T: state_space::StateSpace<N>> {
     },
     Split {
         i: usize,
-        hands: [u32; state::N_HANDS],
+        hands_0: [u32; state::N_HANDS],
+        hands_1: [u32; state::N_HANDS],
     },
     Phantom(PhantomData<T>),
 }
@@ -35,6 +36,7 @@ pub enum AttackError {
 
 #[derive(Debug)]
 pub enum SplitError {
+    ImproperContext,
     MoveWithoutChange,
     InvalidHandLen,
     InvalidTotalFingers,
@@ -59,7 +61,11 @@ mod tests {
     #[test]
     fn get_split_i() {
         let i = 0;
-        let action = Action::Split::<2, Chopsticks> { i, hands: [0, 0] };
+        let action = Action::Split::<2, Chopsticks> {
+            i,
+            hands_0: [0, 0],
+            hands_1: [0, 0],
+        };
         assert_eq!(action.get_i(), i);
     }
 
