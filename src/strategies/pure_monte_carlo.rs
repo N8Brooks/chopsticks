@@ -3,7 +3,7 @@ use crate::{game, state, state_space};
 use game::Game;
 use std::marker::PhantomData;
 
-/// Best min-max move according to `n_sims` for each potential move
+/// Best min sum of rankings move according to `n_sims` for each potential move
 /// this tends not to work very well because its own future moves are random.
 #[derive(Clone)]
 pub struct PureMonteCarlo<const N: usize, T: state_space::StateSpace<N>> {
@@ -30,9 +30,9 @@ impl<const N: usize, T: state_space::StateSpace<N>> Strategy<N, T> for PureMonte
                         );
                         sim_game.play_action(action).expect("valid action");
                         let ranks = sim_game.get_rankings();
-                        ranks[i]
+                        ranks[i] as u32
                     })
-                    .max()
+                    .sum::<u32>()
             })
             .expect("non-zero sims")
     }
