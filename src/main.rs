@@ -7,7 +7,7 @@ use ::chopsticks::strategies::*;
 fn main() {
     let player_1 = Box::new(command_prompt::CommandPrompt::<2, chopsticks::Chopsticks>::default());
     // let player_1 = Box::new(random::Random::default());
-    let player_2 = Box::new(pure_monte_carlo::PureMonteCarlo::new(1000));
+    let player_2 = Box::new(pure_monte_carlo::PureMonteCarlo::new(100));
     let players: [Box<dyn Strategy<2, chopsticks::Chopsticks>>; 2] = [player_1, player_2];
     let mut game =
         multi_strategy::MultiStrategy::new(chopsticks::Chopsticks.get_initial_state(), players);

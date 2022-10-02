@@ -55,7 +55,6 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
                 Err(action::AttackError::HandIsNotAlive)
             } else {
                 *defender = (*defender + attacker) % T::ROLLOVER;
-                defending_player.hands.sort_unstable();
                 self.iterate_turn();
                 Ok(())
             }
@@ -69,8 +68,8 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
             .enumerate()
             .filter(|(j, _)| self.i != *j)
             .flat_map(move |(j, defender)| {
-                let a_indexes = self.players[self.i].alive_fingers_indexes();
-                let b_indexes = defender.alive_fingers_indexes();
+                let a_indexes = self.players[self.i].iter_alive_fingers_indexes();
+                let b_indexes = defender.iter_alive_fingers_indexes();
                 a_indexes
                     .cartesian_product(b_indexes)
                     .map(move |(a, b)| action::Action::Attack { i: self.i, j, a, b })
@@ -81,21 +80,17 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
     pub fn play_split(
         &mut self,
         i: usize,
-        mut new_hands: [u32; N_HANDS],
+        hands: [u32; N_HANDS],
     ) -> Result<(), action::SplitError> {
-        new_hands.sort_unstable();
-        if self.players[i].hands == new_hands {
+        if self.players[i].is_hands_equal(hands) {
             // does this even work?
             Err(action::SplitError::MoveWithoutChange)
-        } else if new_hands.iter().sum::<u32>() != self.players[i].hands.iter().sum() {
+        } else if hands.iter().sum::<u32>() != self.players[i].hands.iter().sum() {
             Err(action::SplitError::InvalidTotalFingers)
-        } else if new_hands
-            .iter()
-            .any(|hand| !(1..T::ROLLOVER).contains(hand))
-        {
+        } else if hands.iter().any(|hand| !(1..T::ROLLOVER).contains(hand)) {
             Err(action::SplitError::InvalidFingerValue)
         } else {
-            self.players[i].hands = new_hands;
+            self.players[i].hands = hands;
             self.iterate_turn();
             Ok(())
         }
@@ -108,7 +103,7 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         let stop = total / 2;
         (start..=stop)
             .map(move |a| -> [u32; N_HANDS] { [a, total - a] })
-            .filter(|&new_hands| self.players[self.i].hands != new_hands) // again, does this even work?
+            .filter(|&hands| !self.players[self.i].is_hands_equal(hands)) // again, does this even work?
             .map(|hands| action::Action::Split { i: self.i, hands })
     }
 
@@ -173,11 +168,11 @@ impl<const N: usize, T: StateSpace<N>> State<N, T> {
         if T::N_PLAYERS != 2 || T::INITIAL_FINGERS != 1 || T::ROLLOVER != 5 {
             panic!("not implemented for the `SpaceState`");
         }
-        self.players[0].hands == [0, 1] && self.players[1].hands == [0, 2]
-            || self.players[0].hands == [0, 2] && self.players[1].hands == [0, 1]
+        self.players[0].is_hands_equal([0, 1]) && self.players[1].is_hands_equal([0, 2])
+            || self.players[0].is_hands_equal([0, 2]) && self.players[1].is_hands_equal([0, 1])
     }
 
-    ///
+    /// Iterate non eliminated player indexes
     pub fn iter_player_indexes(&self) -> impl Iterator<Item = usize> + '_ {
         self.players
             .iter()
@@ -231,7 +226,7 @@ mod tests {
         let mut game_state = Chopsticks.get_initial_state();
         assert!(game_state.play_attack(0, 1, 0, 0).is_ok());
         assert_eq!(game_state.i, 1);
-        assert_eq!(game_state.players[1].hands[1], 2);
+        assert_eq!(game_state.players[1].hands[0], 2);
     }
 
     #[test]
@@ -240,7 +235,7 @@ mod tests {
         game_state.players[0].hands[1] = 4;
         assert!(game_state.play_attack(0, 1, 1, 1).is_ok());
         assert_eq!(game_state.i, 1);
-        assert_eq!(game_state.players[1].hands[0], 0);
+        assert_eq!(game_state.players[1].hands[1], 0);
     }
 
     #[test]
@@ -311,10 +306,9 @@ mod tests {
         let mut game_state = Chopsticks.get_initial_state(); // 1111
         assert!(game_state.play_attack(0, 1, 0, 1).is_ok()); // 1112
         assert!(game_state.play_attack(1, 0, 1, 1).is_ok()); // 1312
-        assert!(game_state.play_attack(0, 1, 1, 1).is_ok()); // 1301
-        assert!(game_state.play_attack(1, 0, 1, 1).is_ok()); // 1401
-        assert!(game_state.play_attack(0, 1, 1, 1).is_ok()); // 1400
-        println!("{}", &game_state.get_abbreviation());
+        assert!(game_state.play_attack(0, 1, 1, 1).is_ok()); // 1310
+        assert!(game_state.play_attack(1, 0, 0, 1).is_ok()); // 1410
+        assert!(game_state.play_attack(0, 1, 1, 0).is_ok()); // 1400
         assert!(matches!(
             game_state.get_status(),
             status::Status::Over { i: 0 }

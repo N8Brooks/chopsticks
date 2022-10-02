@@ -14,16 +14,26 @@ pub struct Player<const N: usize, T: StateSpace<N>> {
 impl<const N: usize, T: StateSpace<N>> Player<N, T> {
     /// Whether the player has been eliminated
     pub fn is_eliminated(&self) -> bool {
-        *self.hands.last().expect("no hands") == 0
+        self.hands.iter().all(|&hand| hand == 0)
     }
 
     /// Finger indices that are attackable
-    pub fn alive_fingers_indexes(&self) -> impl Iterator<Item = usize> + std::clone::Clone + '_ {
+    pub fn iter_alive_fingers_indexes(
+        &self,
+    ) -> impl Iterator<Item = usize> + std::clone::Clone + '_ {
         self.hands
             .iter()
             .enumerate()
-            .skip_while(|(_, &fingers)| fingers == 0)
+            .filter(|(_, &fingers)| fingers != 0)
             .map(|(i, _)| i)
+    }
+
+    pub fn is_hands_equal(&self, new_hands: [u32; N_HANDS]) -> bool {
+        let mut old_hands = self.hands;
+        old_hands.sort_unstable();
+        let mut new_hands = new_hands;
+        new_hands.sort_unstable();
+        old_hands == new_hands
     }
 }
 
